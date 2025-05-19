@@ -79,6 +79,8 @@ class MVTLayer(models.Model):
     url = models.CharField(max_length=255)
     mbtiles_path = models.CharField(max_length=255)
     geometry_type = models.CharField(max_length=255)
+    # scheme: 'tms',
+    scheme = models.CharField(max_length=25, default='tms')
 
     def __str__(self):
         return self.layer_name

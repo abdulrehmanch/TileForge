@@ -1,7 +1,9 @@
 import json
+import os
 
 from django import forms
 from django.contrib import admin
+from django.db.models.signals import pre_delete
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import path
@@ -120,6 +122,14 @@ class DatabaseConnectionAdmin(admin.ModelAdmin):
 
 @admin.register(MVTLayer)
 class MVTLayerAdmin(admin.ModelAdmin):
-    list_display = ('id', 'db_connection', 'layer_name', 'url', 'mbtiles_path', 'geometry_type')
+    list_display = ('id', 'db_connection', 'layer_name', 'url', 'geometry_type')
     list_filter = ('db_connection', 'geometry_type')
-    search_fields = ('layer_name', 'url', 'mbtiles_path')
+    search_fields = ('layer_name', 'url',)
+
+    def __init__(self, model, admin_site):
+        super().__init__(model, admin_site)
+        pre_delete.connect(self.delete_mbtiles_file, sender=model)
+
+    def delete_mbtiles_file(self, sender, instance, **kwargs):
+        if os.path.exists(instance.mbtiles_path):
+            os.remove(instance.mbtiles_path)

@@ -1,0 +1,5 @@
+Django~=5.2.1
+celery~=5.5.2
+psycopg2~=2.9.10
+uvicorn~=0.34.2
+whitenoise~=6.9.0

@@ -10,7 +10,6 @@ MBTILES_DIR = '../mbtiles'
 @shared_task
 def generate_mbtiles(host, db_name, user, password, port, table_name):
     # Create directory structure
-    print("running generate_mbtiles")
     db_dir = os.path.join(MBTILES_DIR, db_name)
     try:
         os.makedirs(db_dir, exist_ok=True)
@@ -18,7 +17,7 @@ def generate_mbtiles(host, db_name, user, password, port, table_name):
         return f"Error creating directories: {str(e)}"
 
     output_path = os.path.join(db_dir, f"{table_name}.mbtiles")
-    command = f'ogr2ogr -f "MBTiles" {output_path} PG:"host={host} dbname={db_name} user={user} password={password} port={port}" -sql "SELECT * FROM {table_name}" -dsco MAXZOOM=10 -dsco MINZOOM=0 -nln "{table_name}_layer"'
+    command = f'ogr2ogr -f "MBTiles" {output_path} PG:"host={host} dbname={db_name} user={user} password={password} port={port}" -sql "SELECT * FROM {table_name}" -dsco MAXZOOM=10 -dsco MINZOOM=0 -nln "{table_name}_layer" -mapFieldType Date=String -mapFieldType DateTime=String'
     try:
         subprocess.run(command, shell=True, check=True)
         result = f"MBTiles for table {table_name} generated successfully!"

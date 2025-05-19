@@ -4,60 +4,181 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MVT Layers Map</title>
-    <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@3.x/dist/maplibre-gl.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@3.x/dist/maplibre-gl.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.0.1/maplibre-gl.css" rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.0.1/maplibre-gl.js"></script>
     <style>
-        body { margin: 0; padding: 0; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        #layer-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+
+        #legend {
+            margin-top: 15px;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        
+        .color-box {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border: 1px solid #ccc;
+        }
+        
+        .layer-toggle {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        
+        .legend-label {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+        }
+        
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
     </style>
 </head>
 <body>
-    <div id="map"></div>
-    <script>
-        const map = new maplibregl.Map({
-            container: 'map',
-            style: {
-                version: 8,
-                sources: {
-                    'osm': {
-                        type: 'raster',
-                        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                        tileSize: 256,
-                        attribution: '© OpenStreetMap contributors'
-                    }
-                },
-                layers: [{
-                    id: 'osm-layer',
-                    type: 'raster',
-                    source: 'osm',
-                    minzoom: 0,
-                    maxzoom: 19
-                }]
-            },
-            center: [0, 0],
-            zoom: 2
-        });
+<div id="map"></div>
+<div id="layer-panel">
+    <h3>Layer Legend</h3>
+    <div id="legend-items"></div>
+</div>
+<script>
+    // Function to generate random colors
+    function getRandomColor() {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    }
 
-        map.on('load', function() {
-            {% for layer in layers %}
-            map.addSource('{{ layer.name }}', {
+    // Store layer colors for consistent display
+    const layerColors = {};
+
+    const map = new maplibregl.Map({
+        container: 'map',
+        style: {
+            version: 8,
+            sources: {
+                'osm': {
+                    type: 'raster',
+                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                    tileSize: 256,
+                    attribution: '© OpenStreetMap contributors'
+                }
+            },
+            layers: [{
+                id: 'osm-layer',
+                type: 'raster',
+                source: 'osm',
+                minzoom: 0,
+                maxzoom: 19
+            }]
+        },
+        center: [0, 0],
+        zoom: 2
+    });
+
+    map.on('load', function () {
+        const legendItems = document.getElementById('legend-items');
+
+        {% for layer in layers %}
+            // Generate and store a random color for this layer
+            const layerName = '{{ layer.name }}';
+            const layerType = '{{ layer.geom_type }}';
+
+            if (!layerColors[layerName]) {
+                layerColors[layerName] = getRandomColor();
+            }
+
+            map.addSource(layerName, {
                 type: 'vector',
                 tiles: [
                     window.location.origin + "/tiles/{{ layer.db }}/{{ layer.table }}/{z}/{x}/{y}"
                 ],
                 minzoom: {{ layer.min_zoom }},
-                maxzoom: {{ layer.max_zoom }}
+                maxzoom: {{ layer.max_zoom }},
+                scheme: '{{ layer.scheme }}',
             });
 
+            // Add paint properties based on geometry type
+            const paintProperties = {};
+            if (layerType === 'fill') {
+                paintProperties['fill-color'] = layerColors[layerName];
+                paintProperties['fill-opacity'] = 0.6;
+            } else if (layerType === 'line') {
+                paintProperties['line-color'] = layerColors[layerName];
+                paintProperties['line-width'] = 2;
+            } else if (layerType === 'circle') {
+                paintProperties['circle-color'] = layerColors[layerName];
+                paintProperties['circle-radius'] = 5;
+            }
+
             map.addLayer({
-                id: '{{ layer.name }}',
-                type: '{{ layer.geom_type }}',
-                source: '{{ layer.name }}',
-                'source-layer': '{{ layer.name }}_layer',
-                {#paint: {{ layer.paint|safe }}#}
+                id: layerName,
+                type: layerType,
+                source: layerName,
+                'source-layer': layerName + '_layer',
+                paint: paintProperties
             });
-            {% endfor %}
-        });
-    </script>
+
+            // Create combined legend item with checkbox
+            const legendItem = document.createElement('div');
+            legendItem.className = 'legend-item';
+            legendItem.innerHTML = `
+                <label class="legend-label">
+                    <input type="checkbox" class="layer-toggle" data-layer="${layerName}" checked>
+                    <div class="color-box" style="background-color: ${layerColors[layerName]}"></div>
+                    <span>${layerName}</span>
+                </label>
+            `;
+            legendItems.appendChild(legendItem);
+
+            // Add event listener for layer toggle
+            const checkbox = legendItem.querySelector('.layer-toggle');
+            checkbox.addEventListener('change', function (e) {
+                const visibility = e.target.checked ? 'visible' : 'none';
+                map.setLayoutProperty(layerName, 'visibility', visibility);
+            });
+        {% endfor %}
+    });
+</script>
 </body>
 </html>

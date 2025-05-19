@@ -1,4 +1,5 @@
 import io
+import os
 import sqlite3
 import threading
 
@@ -44,6 +45,9 @@ def get_tile(z, x, y, db, table):
 
 def serve_tile(request, db, table, z, x, y):
     """Serve vector tiles in PBF format."""
+    mbtiles_path = f"../mbtiles/{db}/{table}.mbtiles"
+    if not os.path.exists(mbtiles_path):
+        return JsonResponse({"error": "MBTiles file not found"}, status=404)
     tile_data = get_tile(z, x, y, db, table)
     if tile_data:
         return HttpResponse(
@@ -77,6 +81,7 @@ def map_view(request, db):
             'min_zoom': layer.min_zoom if hasattr(layer, 'min_zoom') else 0,
             'max_zoom': layer.max_zoom if hasattr(layer, 'max_zoom') else 14,
             'geom_type': layer.geometry_type if hasattr(layer, 'geometry_type') else "fill",
+            'scheme': layer.scheme if hasattr(layer, 'scheme') else 'tms',
         })
 
     return render(request, 'MVTLayerMap.html', {'layers': layers})
