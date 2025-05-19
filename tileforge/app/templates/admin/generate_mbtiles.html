@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+    <h1>Generate MBTiles for {{ connection.database_name }}</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="button">Generate MBTiles</button>
+        <a href="../.." class="button">Cancel</a>
+    </form>
+
+    <!-- Tasks Section -->
+    <div class="module" style="margin-top: 20px;">
+        <h2>Tasks</h2>
+        {% if tasks %}
+            <table>
+                <thead>
+                <tr>
+                    <th>Task ID</th>
+                    <th>Table Name</th>
+                    <th>Status</th>
+                    <th>Started</th>
+                    <th>Completed</th>
+                    <th>Result</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for task in tasks %}
+                    <tr>
+                        <td>{{ task.task_id}}</td>
+                        <td>{{ task.table_name }}</td>
+                        <td>
+                            {% if task.status == 'SUCCESS' %}
+                                <span style="color: green;">{{ task.status }}</span>
+                            {% elif task.status == 'FAILURE' %}
+                                <span style="color: red;">{{ task.status }}</span>
+                            {% else %}
+                                <span style="color: orange;">{{ task.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ task.started_at|date:"Y-m-d H:i:s" }}</td>
+                        <td>{{ task.completed_at|date:"Y-m-d H:i:s"|default:"-" }}</td>
+                        <td>{{ task.result |default:"-" }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No tasks found.</p>
+        {% endif %}
+    </div>
+
+{% endblock %}

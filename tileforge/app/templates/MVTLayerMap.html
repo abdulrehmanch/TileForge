@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVT Layers Map</title>
+    <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@3.x/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@3.x/dist/maplibre-gl.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: {
+                version: 8,
+                sources: {
+                    'osm': {
+                        type: 'raster',
+                        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                        tileSize: 256,
+                        attribution: '© OpenStreetMap contributors'
+                    }
+                },
+                layers: [{
+                    id: 'osm-layer',
+                    type: 'raster',
+                    source: 'osm',
+                    minzoom: 0,
+                    maxzoom: 19
+                }]
+            },
+            center: [0, 0],
+            zoom: 2
+        });
+
+        map.on('load', function() {
+            {% for layer in layers %}
+            map.addSource('{{ layer.name }}', {
+                type: 'vector',
+                tiles: [
+                    window.location.origin + "/tiles/{{ layer.db }}/{{ layer.table }}/{z}/{x}/{y}"
+                ],
+                minzoom: {{ layer.min_zoom }},
+                maxzoom: {{ layer.max_zoom }}
+            });
+
+            map.addLayer({
+                id: '{{ layer.name }}',
+                type: '{{ layer.geom_type }}',
+                source: '{{ layer.name }}',
+                'source-layer': '{{ layer.name }}_layer',
+                {#paint: {{ layer.paint|safe }}#}
+            });
+            {% endfor %}
+        });
+    </script>
+</body>
+</html>
