@@ -80,7 +80,12 @@ TileForge consists of several components:
    python manage.py runserver
    ```
 
-7. Access the application at http://localhost:8000
+7. Start the Celery worker:
+   ```bash
+   celery -A tileforge worker --loglevel=info
+   ```
+
+8. Access the application at http://localhost:8000
 
 ## Usage
 
